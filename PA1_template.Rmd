@@ -1,25 +1,114 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+output: html_document
 ---
 
 
-## Loading and preprocessing the data
 
+## Downloading and preprocessing the data
 
+```{r data, echo = TRUE}
+download.file(url = "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip",destfile = "./data.zip",method = "curl")
+
+unzip("data.zip")
+
+activity <- read.csv(file = "activity.csv",header = T,stringsAsFactors = F)
+```
 
 ## What is mean total number of steps taken per day?
 
+*   Histogram of the total number of steps taken each day
 
+```{r 2, echo=TRUE}
+steps_day<-aggregate(activity$steps, by = list(activity$date), FUN = sum, na.rm = TRUE)
+colnames(steps_day) <- c("date","steps")
+
+hist(steps_day$steps,col = "#20639B",xlab = "Total Steps",ylab = "Frequency",main = "Total Number of Steps per Day")
+```
+
+*   Mean and median number of steps taken each day
+
+```{r 3, echo=TRUE}
+mean(steps_day$steps)
+
+median(steps_day$steps)
+```
 
 ## What is the average daily activity pattern?
 
+*   Time series plot of the interval and the average number of steps taken, averaged across all days
+
+```{r 4, echo=TRUE}
+steps_daily<-aggregate(activity$steps, by = list(activity$interval), FUN = mean, na.rm = TRUE)
+colnames(steps_daily) <- c("interval","steps")
+
+plot(steps_daily$interval,steps_daily$steps,type = "l",xlab = "Interval",ylab = "Average Steps",main = "Average Steps by interval averaged over day")
+```
+
+*   The 5-minute interval which contains the maximum number of steps is:
+```{r 5,echo=TRUE}
+match(max(steps_daily$steps),steps_daily$steps)
+
+steps_daily[104,1]
+```
+The 5-minute interval that contains the maximum number of steps is 835.
 
 
 ## Imputing missing values
+*   The total number of missing values in the dataset:
+```{r 6, echo=TRUE}
+  sum(is.na(activity$steps))
+```
 
+*   Strategy for filling in all of the missing values in the dataset: All the NA values have been filled by using the average(Which has been calculated in "steps_daily") values of steps corresponding to that interval.
 
+```{r 7,echo=TRUE,warning=F}
+index_NA <- which(activity$steps %in% NA)
+for (i in 1:sum(is.na(activity$steps))) 
+  {
+  activity$steps[index_NA[i]]<-steps_daily[steps_daily==activity$interval[index_NA[i]],2]
+}
+
+#Check for NA values
+sum(is.na(activity$steps))
+
+#Creating new variable
+steps_day_new <- aggregate(steps ~ date, activity, FUN = sum, na.rm = TRUE)
+
+```
+*   New histogram with replaced values
+```{r 8,echo=T}
+hist(steps_day_new$steps,col = "#F6D55C",xlab = "Total Steps",ylab = "Frequency",main = "Total Number of Steps per Day")
+
+## Mean and median values are same after replacement and are different from the values obtained in the first part.
+
+mean(steps_day_new$steps)
+
+median(steps_day_new$steps)
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+*   A new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+
+```{r 9, echo=T}
+ activity$date <- as.POSIXct(activity$date)
+ activity$day <- sapply(activity$date, function(x) {
+        if (weekdays(x) == "Saturday" | weekdays(x) =="Sunday") 
+                {y <- "Weekend"} else 
+                {y <- "Weekday"}
+                y
+        })
+```
+
+*   A panel plot containing a time series plot  of the interval and the average number of steps taken, averaged across all weekday days or weekends.
+
+``` {r 10, echo = T}
+steps_by_week <- aggregate(steps~interval + day, activity, mean, na.rm = TRUE)
+
+library(lattice)
+
+xyplot(steps ~ interval | day, groups = day, steps_by_week, outer = T, grid = T,type="l")
+
+## The average steps over the weekends show higher pattern than that of the weekdays.
+```

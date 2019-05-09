@@ -1,3 +1,9 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+Author: Akash Kumar
+output: md_document
+---
+
 Downloading and preprocessing the data
 --------------------------------------
 
